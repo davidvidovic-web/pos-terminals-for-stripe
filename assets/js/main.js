@@ -215,16 +215,17 @@ jQuery(document).ready(function ($) {
     let subtotal = 0;
 
     $("#cart-table tbody tr").each(function () {
-      const rowTotal = parseFloat(
-        $(this).find(".product-total").text().replace(stripe_terminal_pos.currency_symbol, "")
-      );
-      subtotal += rowTotal;
+        // Extract only numbers from the text, ignoring any currency symbol
+        const rowTotal = parseFloat(
+            $(this).find(".product-total").text().replace(/[^0-9.-]+/g, '')
+        );
+        subtotal += rowTotal;
     });
 
     const enableTax = stripe_terminal_pos.enable_tax;
     const taxRate = enableTax
-      ? parseFloat(stripe_terminal_pos.sales_tax_rate)
-      : 0;
+        ? parseFloat(stripe_terminal_pos.sales_tax_rate)
+        : 0;
     const tax = subtotal * taxRate;
     const total = subtotal + tax;
 
@@ -232,16 +233,16 @@ jQuery(document).ready(function ($) {
 
     // Tax calculations only if tax is enabled
     if (enableTax) {
-      $("#tax").text(formatCurrency(tax));
+        $("#tax").text(formatCurrency(tax));
     }
 
     $("#total").text(formatCurrency(total));
 
     // Update create payment button state
     if (subtotal > 0 && $(".terminal-item.selected").length > 0) {
-      $("#create-payment").prop("disabled", false);
+        $("#create-payment").prop("disabled", false);
     } else {
-      $("#create-payment").prop("disabled", true);
+        $("#create-payment").prop("disabled", true);
     }
   }
 
@@ -259,7 +260,7 @@ jQuery(document).ready(function ($) {
     }
 
     // Get the total amount from our cart
-    const amount = parseFloat($("#total").text().replace("$", ""));
+    const amount = parseFloat($("#total").text().replace(/[^0-9.-]+/g, ''));
 
     if (isNaN(amount) || amount <= 0) {
       alert("Please add products to the cart first.");
@@ -403,14 +404,13 @@ jQuery(document).ready(function ($) {
 
   // Check payment status
   function checkPaymentStatus(paymentId) {
-    // Gather cart items
     const cartItems = [];
     $("#cart-table tbody tr").each(function() {
         cartItems.push({
             product_id: $(this).data('product-id'),
             price: $(this).data('price'),
             quantity: parseInt($(this).find('.product-qty').val()),
-            total: parseFloat($(this).find('.product-total').text().replace(stripe_terminal_pos.currency_symbol, ''))
+            total: parseFloat($(this).find(".product-total").text().replace(/[^0-9.-]+/g, ''))
         });
     });
 
@@ -422,7 +422,7 @@ jQuery(document).ready(function ($) {
         nonce: stripe_terminal_pos.nonce,
         payment_intent_id: paymentId,
         cart_items: JSON.stringify(cartItems),
-        tax: parseFloat($("#tax").text().replace(stripe_terminal_pos.currency_symbol, '')),
+        tax: parseFloat($("#tax").text().replace(/[^0-9.-]+/g, '')),
         notes: $("#payment-description").val(),
         reader_id: $(".terminal-item.selected").data("reader-id")
       },
