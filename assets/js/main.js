@@ -5,6 +5,12 @@ jQuery(document).ready(function ($) {
   let clientSecret = null;
   let processingComplete = false;
 
+  // Add near the beginning of the script
+  if (!stripe_terminal_pos.currency_supported) {
+    $("#create-payment").prop("disabled", true)
+      .attr("title", "Currency not supported by Stripe Terminal");
+  }
+
   // Handle tax enable/disable toggle
   $("#stripe_enable_tax").on("change", function () {
     const $taxRate = $("#stripe_sales_tax");
@@ -162,18 +168,16 @@ jQuery(document).ready(function ($) {
     } else {
       // Add new row if product doesn't exist
       const newRow = `
-        <tr id="product-${productId}" data-product-id="${productId}" data-price="${productPrice.toFixed(
-        2
-      )}">
+        <tr id="product-${productId}" data-product-id="${productId}" data-price="${productPrice.toFixed(2)}">
             <td>${productName}</td>
             <td>
-                <span class="product-price">$${productPrice.toFixed(2)}</span>
+                <span class="product-price">${formatCurrency(productPrice)}</span>
                 <input type="hidden" value="${productPrice.toFixed(2)}">
             </td>
             <td>
                 <input type="number" class="product-qty" min="1" value="1">
             </td>
-            <td class="product-total">$${productPrice.toFixed(2)}</td>
+            <td class="product-total">${formatCurrency(productPrice)}</td>
             <td><span class="remove-product">✕</span></td>
         </tr>
       `;
@@ -188,14 +192,14 @@ jQuery(document).ready(function ($) {
     updateCartTotals();
   });
 
-  // Handle quantity changes
+  // Update the quantity change handler
   $(document).on("change", ".product-qty", function () {
     const row = $(this).closest("tr");
-    const price = parseFloat(row.data("price")); // Get price from data attribute
+    const price = parseFloat(row.data("price"));
     const qty = parseInt($(this).val());
     const total = price * qty;
 
-    row.find(".product-total").text("$" + total.toFixed(2));
+    row.find(".product-total").text(formatCurrency(total));
     updateCartTotals();
   });
 
@@ -205,12 +209,12 @@ jQuery(document).ready(function ($) {
     updateCartTotals();
   });
 
-  // Calculate cart totals
+  // Update the formatCurrency function
   function formatCurrency(amount) {
     return stripe_terminal_pos.currency_symbol + amount.toFixed(2);
   }
 
-  // Update the cart totals
+  // Calculate cart totals
   function updateCartTotals() {
     let subtotal = 0;
 
@@ -247,8 +251,14 @@ jQuery(document).ready(function ($) {
   }
 
   // 3. PAYMENT PROCESSING
-  // Add a new combined payment function
+  // Update the create-payment click handler
   $("#create-payment").on("click", function () {
+    if (!stripe_terminal_pos.currency_supported) {
+      alert("Your current WooCommerce currency is not supported by Stripe Terminal. " +
+            "Supported currencies: " + stripe_terminal_pos.supported_currencies.join(", ").toUpperCase());
+      return;
+    }
+
     if ($(this).prop("disabled")) {
       return;
     }
@@ -279,20 +289,18 @@ jQuery(document).ready(function ($) {
       const productName = $(this).find("td:first").text();
       const price = $(this).find(".product-price").val();
       const qty = $(this).find(".product-qty").val();
-      const total = $(this).find(".product-total").text().replace("$", "");
+      const total = parseFloat($(this).find(".product-total").text().replace(/[^0-9.-]+/g, ''));
 
-      // Add each product row to the string
-      productDetails += `${productName} | ${qty} | $${price} | $${total}\n`;
+      // Add each product row to the string using dynamic currency symbol
+      productDetails += `${productName} | ${qty} | ${formatCurrency(parseFloat(price))} | ${formatCurrency(total)}\n`;
     });
 
-    // Add summary information
-    const subtotal = $("#subtotal").text();
-    const tax = $("#tax").text();
-    const total = $("#total").text();
-
+    // Update summary information with dynamic currency
     productDetails += "--------------------------------\n";
     productDetails += `SUBTOTAL: ${subtotal}\n`;
-    productDetails += `TAX (10.25%): ${tax}\n`;
+    if (stripe_terminal_pos.enable_tax) {
+        productDetails += `TAX (${(stripe_terminal_pos.sales_tax_rate * 100).toFixed(2)}%): ${tax}\n`;
+    }
     productDetails += `TOTAL: ${total}\n`;
 
     // Get any additional notes
@@ -311,7 +319,7 @@ jQuery(document).ready(function ($) {
         action: "stripe_create_payment_intent",
         nonce: stripe_terminal_pos.nonce,
         amount: amount,
-        currency: stripe_terminal_pos.currency, // Use dynamic currency
+        currency: stripe_terminal_pos.currency.toLowerCase(),
         metadata: {
           description: productDetails,
         },
@@ -320,6 +328,10 @@ jQuery(document).ready(function ($) {
         if (response.success && response.data) {
           paymentIntentId = response.data.intent_id;
           clientSecret = response.data.client_secret;
+
+          // Show the payment control buttons
+          $(".payment-controls").show();
+          $("#check-status, #cancel-payment").prop("disabled", false);
 
           $("#payment-status").html(
             "<p>Step 1/2: Payment intent created successfully!</p>" +
@@ -583,15 +595,25 @@ jQuery(document).ready(function ($) {
     paymentIntentId = null;
     clientSecret = null;
     processingComplete = true;
-    $("#process-payment").prop("disabled", true);
-    $("#check-status").prop("disabled", true);
-    $("#cancel-payment").prop("disabled", true);
-    $("#create-payment")
-      .text("Create & Process Payment")
-      .prop("disabled", false);
+
+    // Hide payment controls
+    $(".payment-controls").hide();
+    
+    $("#create-payment").text("Create & Process Payment").prop("disabled", false);
     $("#discover-terminals").prop("disabled", false);
   }
 
   // Only change the Create Payment button text to make it clear it's an all-in-one action
   $("#create-payment").text("Create & Process Payment");
+
+  // Add click handler for check status button
+  $("#check-status").on("click", function() {
+    if (!paymentIntentId) {
+        alert("No active payment to check.");
+        return;
+    }
+    $(this).prop("disabled", true);
+    checkPaymentStatus(paymentIntentId);
+    setTimeout(() => $(this).prop("disabled", false), 2000); // Re-enable after 2s
+});
 });

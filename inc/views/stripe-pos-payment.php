@@ -2,6 +2,19 @@
 <div class="wrap">
     <div class="stripe-terminal-admin-container">
         <div class="stripe-terminal-pos">
+            <?php 
+            $wc_currency = get_woocommerce_currency();
+            if (!$this->is_currency_supported($wc_currency)): 
+            ?>
+            <div class="notice notice-error">
+                <p>
+                    <strong>Warning:</strong> Your current WooCommerce currency (<?php echo esc_html($wc_currency); ?>) 
+                    is not supported by Stripe Terminal. Please change your WooCommerce currency to one of the following:
+                    <?php echo esc_html(implode(', ', array_keys($this->supported_currencies))); ?>
+                </p>
+            </div>
+            <?php endif; ?>
+
             <div class="pos-section">
                 <h3>1. Select Terminal</h3>
                 <button id="discover-terminals" class="button">Discover Terminals</button>
@@ -27,12 +40,24 @@
                             // Update the product option output
                             foreach ($products as $product) {
                                 $price = esc_attr($product->get_price());
-                                $id = esc_attr($product->get_id());
+                                $id = absint($product->get_id());  // Using absint for IDs
                                 $name = esc_html($product->get_name());
-                                $currency_symbol = esc_html($this->get_currency_symbol($this->get_default_currency()));
+                                $formatted_price = wp_kses(
+                                    wc_price($price),
+                                    array(
+                                        'span' => array(
+                                            'class' => array()
+                                        )
+                                    )
+                                );
                                 
-                                echo '<option value="' . $id . '" data-price="' . $price . '">' 
-                                    . $name . ' (' . $currency_symbol . $price . ')</option>';
+                                printf(
+                                    '<option value="%1$d" data-price="%2$s">%3$s (%4$s)</option>',
+                                    $id,
+                                    esc_attr($price),
+                                    $name,
+                                    $formatted_price
+                                );
                             }
                         }
                         ?>
@@ -45,9 +70,9 @@
                         <thead>
                             <tr>
                                 <th>Product</th>
-                                <th>Price ($)</th>
+                                <th>Price</th>
                                 <th>Quantity</th>
-                                <th>Total ($)</th>
+                                <th>Total</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -87,6 +112,10 @@
             <div class="pos-section">
                 <h3>3. Process Payment</h3>
                 <div id="payment-status"></div>
+                <div class="button-group payment-controls" style="display: none;">
+                    <button id="check-status" class="button">Check Status</button>
+                    <button id="cancel-payment" class="button">Cancel Payment</button>
+                </div>
             </div>
         </div>
     </div>

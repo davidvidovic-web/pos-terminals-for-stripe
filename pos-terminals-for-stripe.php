@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Plugin Name: Stripe Terminal POS
+ * Plugin Name: POS Terminals for Stripe
  * Plugin URI: https://github.com/davidvidovic-web/stripe-pos-wp
  * Description: A WordPress plugin for Stripe Terminal POS integration with WooCommerce
  * Version: 1.0.0
@@ -11,8 +12,7 @@
  * Author URI: https://davidvidovic.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: stripe-pos-wp
- * Domain Path: /languages
+ * Text Domain: pos-terminals-for-stripe
  * WC requires at least: 3.0
  * WC tested up to: 8.0
  */
@@ -27,6 +27,161 @@ class StripeTerminalPOS
 {
     private static $instance = null;
     private $plugin_dir;
+
+    // Update the supported_currencies property
+    private $supported_currencies = [
+        'usd' => 'US Dollar',
+        'aed' => 'UAE Dirham',
+        'afn' => 'Afghan Afghani',
+        'all' => 'Albanian Lek',
+        'amd' => 'Armenian Dram',
+        'ang' => 'Netherlands Antillean Guilder',
+        'aoa' => 'Angolan Kwanza',
+        'ars' => 'Argentine Peso',
+        'aud' => 'Australian Dollar',
+        'awg' => 'Aruban Florin',
+        'azn' => 'Azerbaijani Manat',
+        'bam' => 'Bosnia-Herzegovina Convertible Mark',
+        'bbd' => 'Barbadian Dollar',
+        'bdt' => 'Bangladeshi Taka',
+        'bgn' => 'Bulgarian Lev',
+        'bhd' => 'Bahraini Dinar',
+        'bif' => 'Burundian Franc',
+        'bmd' => 'Bermudan Dollar',
+        'bnd' => 'Brunei Dollar',
+        'bob' => 'Bolivian Boliviano',
+        'brl' => 'Brazilian Real',
+        'bsd' => 'Bahamian Dollar',
+        'btn' => 'Bhutanese Ngultrum',
+        'bwp' => 'Botswanan Pula',
+        'byn' => 'Belarusian Ruble',
+        'bzd' => 'Belize Dollar',
+        'cad' => 'Canadian Dollar',
+        'cdf' => 'Congolese Franc',
+        'chf' => 'Swiss Franc',
+        'clp' => 'Chilean Peso',
+        'cny' => 'Chinese Yuan',
+        'cop' => 'Colombian Peso',
+        'crc' => 'Costa Rican Colón',
+        'cve' => 'Cape Verdean Escudo',
+        'czk' => 'Czech Koruna',
+        'djf' => 'Djiboutian Franc',
+        'dkk' => 'Danish Krone',
+        'dop' => 'Dominican Peso',
+        'dzd' => 'Algerian Dinar',
+        'eek' => 'Estonian Kroon',
+        'egp' => 'Egyptian Pound',
+        'etb' => 'Ethiopian Birr',
+        'eur' => 'Euro',
+        'fjd' => 'Fijian Dollar',
+        'fkp' => 'Falkland Islands Pound',
+        'gbp' => 'British Pound',
+        'gel' => 'Georgian Lari',
+        'ghs' => 'Ghanaian Cedi',
+        'gip' => 'Gibraltar Pound',
+        'gmd' => 'Gambian Dalasi',
+        'gnf' => 'Guinean Franc',
+        'gtq' => 'Guatemalan Quetzal',
+        'gyd' => 'Guyanaese Dollar',
+        'hkd' => 'Hong Kong Dollar',
+        'hnl' => 'Honduran Lempira',
+        'hrk' => 'Croatian Kuna',
+        'htg' => 'Haitian Gourde',
+        'huf' => 'Hungarian Forint',
+        'idr' => 'Indonesian Rupiah',
+        'ils' => 'Israeli New Sheqel',
+        'inr' => 'Indian Rupee',
+        'isk' => 'Icelandic Króna',
+        'jmd' => 'Jamaican Dollar',
+        'jod' => 'Jordanian Dinar',
+        'jpy' => 'Japanese Yen',
+        'kes' => 'Kenyan Shilling',
+        'kgs' => 'Kyrgystani Som',
+        'khr' => 'Cambodian Riel',
+        'kmf' => 'Comorian Franc',
+        'krw' => 'South Korean Won',
+        'kwd' => 'Kuwaiti Dinar',
+        'kyd' => 'Cayman Islands Dollar',
+        'kzt' => 'Kazakhstani Tenge',
+        'lak' => 'Laotian Kip',
+        'lbp' => 'Lebanese Pound',
+        'lkr' => 'Sri Lankan Rupee',
+        'lrd' => 'Liberian Dollar',
+        'lsl' => 'Lesotho Loti',
+        'ltl' => 'Lithuanian Litas',
+        'lvl' => 'Latvian Lats',
+        'mad' => 'Moroccan Dirham',
+        'mdl' => 'Moldovan Leu',
+        'mga' => 'Malagasy Ariary',
+        'mkd' => 'Macedonian Denar',
+        'mmk' => 'Myanmar Kyat',
+        'mnt' => 'Mongolian Tugrik',
+        'mop' => 'Macanese Pataca',
+        'mro' => 'Mauritanian Ouguiya',
+        'mur' => 'Mauritian Rupee',
+        'mvr' => 'Maldivian Rufiyaa',
+        'mwk' => 'Malawian Kwacha',
+        'mxn' => 'Mexican Peso',
+        'myr' => 'Malaysian Ringgit',
+        'mzn' => 'Mozambican Metical',
+        'nad' => 'Namibian Dollar',
+        'ngn' => 'Nigerian Naira',
+        'nio' => 'Nicaraguan Córdoba',
+        'nok' => 'Norwegian Krone',
+        'npr' => 'Nepalese Rupee',
+        'nzd' => 'New Zealand Dollar',
+        'omr' => 'Omani Rial',
+        'pab' => 'Panamanian Balboa',
+        'pen' => 'Peruvian Nuevo Sol',
+        'pgk' => 'Papua New Guinean Kina',
+        'php' => 'Philippine Peso',
+        'pkr' => 'Pakistani Rupee',
+        'pln' => 'Polish Złoty',
+        'pyg' => 'Paraguayan Guarani',
+        'qar' => 'Qatari Rial',
+        'ron' => 'Romanian Leu',
+        'rsd' => 'Serbian Dinar',
+        'rub' => 'Russian Ruble',
+        'rwf' => 'Rwandan Franc',
+        'sar' => 'Saudi Riyal',
+        'sbd' => 'Solomon Islands Dollar',
+        'scr' => 'Seychellois Rupee',
+        'sek' => 'Swedish Krona',
+        'sgd' => 'Singapore Dollar',
+        'shp' => 'Saint Helena Pound',
+        'sle' => 'Sierra Leonean Leone',
+        'sll' => 'Sierra Leonean Leone (Old)',
+        'sos' => 'Somali Shilling',
+        'srd' => 'Surinamese Dollar',
+        'std' => 'São Tomé and Príncipe Dobra',
+        'svc' => 'Salvadoran Colón',
+        'szl' => 'Swazi Lilangeni',
+        'thb' => 'Thai Baht',
+        'tjs' => 'Tajikistani Somoni',
+        'tnd' => 'Tunisian Dinar',
+        'top' => 'Tongan Paʻanga',
+        'try' => 'Turkish Lira',
+        'ttd' => 'Trinidad and Tobago Dollar',
+        'twd' => 'New Taiwan Dollar',
+        'tzs' => 'Tanzanian Shilling',
+        'uah' => 'Ukrainian Hryvnia',
+        'ugx' => 'Ugandan Shilling',
+        'usdc' => 'USD Coin',
+        'uyu' => 'Uruguayan Peso',
+        'uzs' => 'Uzbekistan Som',
+        'vef' => 'Venezuelan Bolívar',
+        'vnd' => 'Vietnamese Dong',
+        'vuv' => 'Vanuatu Vatu',
+        'wst' => 'Samoan Tala',
+        'xaf' => 'Central African CFA Franc',
+        'xcd' => 'East Caribbean Dollar',
+        'xcg' => 'CFA Franc BCEAO',
+        'xof' => 'West African CFA Franc',
+        'xpf' => 'CFP Franc',
+        'yer' => 'Yemeni Rial',
+        'zar' => 'South African Rand',
+        'zmw' => 'Zambian Kwacha'
+    ];
 
     private function __construct()
     {
@@ -91,12 +246,55 @@ class StripeTerminalPOS
 
     public function register_stripe_settings()
     {
-        register_setting('stripe_pos_terminals_group', 'stripe_api_key');
-        register_setting('stripe_pos_terminals_group', 'stripe_pos_id');
-        register_setting('stripe_pos_terminals_group', 'stripe_enable_tax');
-        register_setting('stripe_pos_terminals_group', 'stripe_sales_tax');
-        register_setting('stripe_pos_terminals_group', 'stripe_auto_select_terminal');
-        register_setting('stripe_pos_terminals_group', 'stripe_default_currency');
+        register_setting(
+            'stripe_pos_terminals_group',
+            'stripe_api_key',
+            array(
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+                'default' => ''
+            )
+        );
+
+        register_setting(
+            'stripe_pos_terminals_group',
+            'stripe_pos_id',
+            array(
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+                'default' => ''
+            )
+        );
+
+        register_setting(
+            'stripe_pos_terminals_group',
+            'stripe_enable_tax',
+            array(
+                'type' => 'boolean',
+                'sanitize_callback' => array($this, 'sanitize_checkbox'),
+                'default' => false
+            )
+        );
+
+        register_setting(
+            'stripe_pos_terminals_group',
+            'stripe_sales_tax',
+            array(
+                'type' => 'number',
+                'sanitize_callback' => array($this, 'sanitize_tax_rate'),
+                'default' => 0
+            )
+        );
+
+        register_setting(
+            'stripe_pos_terminals_group',
+            'stripe_auto_select_terminal',
+            array(
+                'type' => 'boolean',
+                'sanitize_callback' => array($this, 'sanitize_checkbox'),
+                'default' => true
+            )
+        );
 
         add_settings_section(
             'stripe_settings_section',
@@ -144,14 +342,6 @@ class StripeTerminalPOS
             'stripe-settings',
             'stripe_settings_section'
         );
-
-        add_settings_field(
-            'stripe_default_currency',
-            'Default Currency',
-            [$this, 'stripe_default_currency_callback'],
-            'stripe-settings',
-            'stripe_settings_section'
-        );
     }
 
     /**
@@ -189,10 +379,18 @@ class StripeTerminalPOS
         $stripe_sales_tax = get_option('stripe_sales_tax', '0');
         $disabled = $enable_tax !== '1' ? ' disabled' : '';
 
-        echo '<input type="number" id="stripe_sales_tax" step="0.01" min="0" max="100" 
-            name="stripe_sales_tax" value="' . esc_attr($stripe_sales_tax) . '" 
-            class="small-text"' . $disabled . ' /> %';
-        echo '<p class="description">Enter your sales tax rate as a percentage (e.g., 10.25 for 10.25%). Set to 0 for no tax.</p>';
+        echo sprintf(
+            '<input type="number" id="%1$s" step="0.01" min="0" max="100" name="%1$s" value="%2$s" class="small-text"%3$s /> %%',
+            'stripe_sales_tax',
+            esc_attr($stripe_sales_tax),
+            disabled($enable_tax !== '1', true, false)
+        );
+        echo wp_kses(
+            '<p class="description">Enter your sales tax rate as a percentage (e.g., 10.25 for 10.25%). Set to 0 for no tax.</p>',
+            array(
+                'p' => array('class' => array()),
+            )
+        );
     }
 
     function stripe_auto_select_terminal_callback()
@@ -200,21 +398,6 @@ class StripeTerminalPOS
         $auto_select = get_option('stripe_auto_select_terminal', '1');
         echo '<input type="checkbox" id="stripe_auto_select_terminal" name="stripe_auto_select_terminal" value="1" ' . checked('1', $auto_select, false) . ' />';
         echo '<p class="description">Automatically select the first available terminal when discovering readers.</p>';
-    }
-
-    public function stripe_default_currency_callback()
-    {
-        $default_currency = $this->get_default_currency();
-        $currencies = $this->get_supported_currencies();
-
-        echo '<select id="stripe_default_currency" name="stripe_default_currency">';
-        foreach ($currencies as $code => $name) {
-            echo '<option value="' . esc_attr($code) . '" ' . selected($default_currency, $code, false) . '>';
-            echo esc_html("$code - $name");
-            echo '</option>';
-        }
-        echo '</select>';
-        echo '<p class="description">Select the default currency for payments. This will default to your WooCommerce currency if available.</p>';
     }
 
     /**
@@ -289,22 +472,16 @@ class StripeTerminalPOS
 
             $stripe_pos_id = get_option('stripe_pos_id');
             if (!$stripe_pos_id) {
-                error_log('Stripe Terminal: Missing POS location ID');
                 return new WP_Error('missing_location', 'Stripe POS location ID not configured');
             }
-
-            error_log('Stripe Terminal: Attempting to discover readers for location ' . $stripe_pos_id);
 
             $readers = \Stripe\Terminal\Reader::all([
                 'location' => $stripe_pos_id,
                 'limit' => 10,
             ]);
 
-            error_log('Stripe Terminal: Found ' . count($readers->data) . ' readers');
-
             return $readers->data;
         } catch (Exception $e) {
-            error_log('Stripe Terminal Error: ' . $e->getMessage());
             return new WP_Error('stripe_error', $e->getMessage());
         }
     }
@@ -499,8 +676,11 @@ class StripeTerminalPOS
         }
 
         $amount = floatval($_POST['amount']);
-        $currency = isset($_POST['currency']) ? sanitize_text_field($_POST['currency']) : 'usd';
-        $metadata = isset($_POST['metadata']) && is_array($_POST['metadata']) ? $_POST['metadata'] : [];
+        $currency = isset($_POST['currency']) ? sanitize_text_field(wp_unslash($_POST['currency'])) : 'usd';
+        $metadata = isset($_POST['metadata']) ? wp_unslash($_POST['metadata']) : [];
+        
+        // Ensure metadata is an array after unslashing
+        $metadata = is_array($metadata) ? $metadata : [];
 
         $result = $this->create_terminal_payment_intent($amount, $currency, $metadata);
 
@@ -664,14 +844,17 @@ class StripeTerminalPOS
             '1.0.0'
         );
 
+        $wc_currency = get_woocommerce_currency();
         wp_localize_script('stripe-terminal-pos', 'stripe_terminal_pos', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('stripe_terminal_nonce'),
             'enable_tax' => get_option('stripe_enable_tax', '0') === '1',
             'sales_tax_rate' => floatval(get_option('stripe_sales_tax', '0')) / 100,
             'auto_select_terminal' => get_option('stripe_auto_select_terminal', '1') === '1',
-            'currency' => $this->get_default_currency(),
-            'currency_symbol' => $this->get_currency_symbol($this->get_default_currency())
+            'currency' => $wc_currency,
+            'currency_symbol' => html_entity_decode(get_woocommerce_currency_symbol()),
+            'currency_supported' => $this->is_currency_supported($wc_currency),
+            'supported_currencies' => array_keys($this->supported_currencies)
         ]);
     }
 
@@ -683,60 +866,29 @@ class StripeTerminalPOS
         // Enqueue the script specifically for this shortcode
         wp_enqueue_script('stripe-terminal-pos');
 
-        // Enqueue Select2 for better product search experience
-        wp_enqueue_style('select2', WP_PLUGIN_URL . '/stripe-pos-wp/assets/css/select2.min.css');
-        wp_enqueue_script('select2', WP_PLUGIN_URL . '/stripe-pos-wp/assets/js/select2.min.js', array('jquery'), null, true);
+        // Get plugin file path for version control
+        $select2_css_ver = filemtime(plugin_dir_path(__FILE__) . 'assets/css/select2.min.css');
+        $select2_js_ver = filemtime(plugin_dir_path(__FILE__) . 'assets/js/select2.min.js');
+
+        // Enqueue Select2 with proper version numbers
+        wp_enqueue_style(
+            'select2', 
+            WP_PLUGIN_URL . '/stripe-pos-wp/assets/css/select2.min.css',
+            array(),
+            $select2_css_ver
+        );
+        
+        wp_enqueue_script(
+            'select2', 
+            WP_PLUGIN_URL . '/stripe-pos-wp/assets/js/select2.min.js', 
+            array('jquery'),
+            $select2_js_ver,
+            true
+        );
     }
 
-    private function get_supported_currencies()
+    private function create_woocommerce_order($payment_data, $cart_items)
     {
-        return [
-            'usd' => '$',
-            'eur' => '€',
-            'gbp' => '£',
-            'aud' => 'A$',
-            'cad' => 'C$',
-            'jpy' => '¥',
-            'nzd' => 'NZ$',
-            'chf' => 'CHF',
-            'sgd' => 'S$',
-            'hkd' => 'HK$',
-        ];
-    }
-
-    private function get_default_currency()
-    {
-        // Try to get WooCommerce currency first
-        if (function_exists('get_woocommerce_currency')) {
-            $wc_currency = strtolower(get_woocommerce_currency());
-            if (array_key_exists($wc_currency, $this->get_supported_currencies())) {
-                return $wc_currency;
-            }
-        }
-
-        // Fall back to saved setting or default to USD
-        return get_option('stripe_default_currency', 'usd');
-    }
-
-    private function get_currency_symbol($currency_code)
-    {
-        $symbols = [
-            'usd' => '$',
-            'eur' => '€',
-            'gbp' => '£',
-            'aud' => 'A$',
-            'cad' => 'C$',
-            'jpy' => '¥',
-            'nzd' => 'NZ$',
-            'chf' => 'CHF',
-            'sgd' => 'S$',
-            'hkd' => 'HK$',
-        ];
-
-        return isset($symbols[$currency_code]) ? $symbols[$currency_code] : $currency_code;
-    }
-
-    private function create_woocommerce_order($payment_data, $cart_items) {
         if (!class_exists('WooCommerce')) {
             return false;
         }
@@ -794,6 +946,24 @@ class StripeTerminalPOS
             error_log('Stripe Terminal: Error creating WooCommerce order - ' . $e->getMessage());
             return false;
         }
+    }
+
+    // Add this method to check currency support
+    private function is_currency_supported($currency)
+    {
+        return isset($this->supported_currencies[strtolower($currency)]);
+    }
+
+    // Sanitization methods
+    private function sanitize_checkbox($input)
+    {
+        return (isset($input) && true === (bool) $input) ? '1' : '0';
+    }
+
+    private function sanitize_tax_rate($input)
+    {
+        $number = floatval($input);
+        return max(0, min(100, $number)); // Ensures value is between 0 and 100
     }
 }
 

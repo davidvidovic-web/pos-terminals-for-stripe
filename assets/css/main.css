@@ -97,12 +97,40 @@
 }
 
 .button-group {
+  margin-top: 15px;
   display: flex;
   gap: 10px;
+}
+
+.button-group .button {
+  flex: 1;
+}
+
+.payment-controls {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
 }
 
 .product-price {
   display: inline-block;
   min-width: 70px;
   padding: 5px 0;
+}
+
+.notice {
+    padding: 10px 15px;
+    margin: 0 0 20px;
+    border-left: 4px solid;
+    background: #fff;
+}
+
+.notice-error {
+    border-color: #dc3232;
+    background-color: #fef7f7;
+}
+
+.notice p {
+    margin: 0.5em 0;
+    padding: 0;
 }

@@ -1,4 +1,4 @@
-# Stripe Terminal POS for WordPress
+# POS Terminals for Stripe
 
 A WordPress plugin that integrates Stripe Terminal for Point of Sale (POS) payments using server-driven integration.
 
@@ -22,7 +22,7 @@ A WordPress plugin that integrates Stripe Terminal for Point of Sale (POS) payme
 
 ## Installation
 
-1. Upload the plugin files to `/wp-content/plugins/stripe-pos-wp`
+1. Upload the plugin files to `/wp-content/plugins/pos-terminals-for-stripe`
 2. Activate the plugin through the 'Plugins' screen in WordPress
 3. Configure your Stripe API keys in the plugin settings
 4. Add your Terminal location ID in settings
