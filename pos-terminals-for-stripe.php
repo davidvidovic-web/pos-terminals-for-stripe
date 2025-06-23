@@ -1,11 +1,10 @@
 <?php
 
 /**
- * Plugin Name: POS Terminals for Stripe
+ * Plugin Name: POS Terminals integration for Stripe
  * Plugin URI: https://github.com/davidvidovic-web/stripe-pos-wp
  * Description: A WordPress plugin for Stripe Terminal POS integration with WooCommerce
  * Version: 1.0.0
- * Requires at least: 5.0
  * Requires PHP: 7.2
  * Author: David Vidovic
  * Author Email: mail@davidvidovic.com
@@ -185,7 +184,7 @@ class StripeTerminalPOS
 
     private function __construct()
     {
-        $this->plugin_dir = WP_PLUGIN_DIR . '/stripe-pos-wp';
+        $this->plugin_dir = plugin_dir_path(__FILE__);
         $this->init_hooks();
     }
 
@@ -428,12 +427,11 @@ class StripeTerminalPOS
      */
     function display_stripe_terminal_pos_page()
     {
-        // Check user capabilities
+
         if (!current_user_can('manage_options')) {
             return;
         }
 
-        // Ensure shortcode styles and scripts work in admin
         wp_enqueue_script('stripe-terminal-pos');
 
     ?>
@@ -677,10 +675,15 @@ class StripeTerminalPOS
 
         $amount = floatval($_POST['amount']);
         $currency = isset($_POST['currency']) ? sanitize_text_field(wp_unslash($_POST['currency'])) : 'usd';
-        $metadata = isset($_POST['metadata']) ? wp_unslash($_POST['metadata']) : [];
-        
-        // Ensure metadata is an array after unslashing
-        $metadata = is_array($metadata) ? $metadata : [];
+
+        $metadata = isset($_POST['metadata']) && is_array($_POST['metadata'])
+            ? array_map(function ($value) {
+                if (is_array($value)) {
+                    return array_map('sanitize_text_field', $value);
+                }
+                return sanitize_text_field($value);
+            }, wp_unslash($_POST['metadata']))
+            : array();
 
         $result = $this->create_terminal_payment_intent($amount, $currency, $metadata);
 
@@ -705,8 +708,8 @@ class StripeTerminalPOS
             wp_die();
         }
 
-        $reader_id = sanitize_text_field($_POST['reader_id']);
-        $payment_intent_id = sanitize_text_field($_POST['payment_intent_id']);
+        $reader_id = sanitize_text_field(wp_unslash($_POST['reader_id']));
+        $payment_intent_id = sanitize_text_field(wp_unslash($_POST['payment_intent_id']));
 
         $result = $this->process_terminal_payment($reader_id, $payment_intent_id);
 
@@ -731,10 +734,19 @@ class StripeTerminalPOS
             wp_die();
         }
 
-        $payment_intent_id = sanitize_text_field($_POST['payment_intent_id']);
-        $cart_items = json_decode(stripslashes($_POST['cart_items']), true);
-        $notes = isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '';
-        $reader_id = isset($_POST['reader_id']) ? sanitize_text_field($_POST['reader_id']) : '';
+        $payment_intent_id = sanitize_text_field(wp_unslash($_POST['payment_intent_id']));
+        $cart_items = array_map(function ($item) {
+            return array(
+                'product_id'    => absint($item['product_id']),
+                'quantity'      => absint($item['quantity']),
+                'name'          => sanitize_text_field($item['name']),
+                'price'         => floatval($item['price']),
+                'variation_id'  => isset($item['variation_id']) ? absint($item['variation_id']) : 0,
+                'meta_data'     => isset($item['meta_data']) ? array_map('sanitize_text_field', $item['meta_data']) : array()
+            );
+        }, json_decode(wp_unslash($_POST['cart_items'], true) ?? []));
+        $notes = isset($_POST['notes']) ? sanitize_textarea_field(wp_unslash($_POST['notes'])) : '';
+        $reader_id = isset($_POST['reader_id']) ? sanitize_text_field(wp_unslash($_POST['reader_id'])) : '';
 
         $result = $this->check_payment_intent_status($payment_intent_id);
 
@@ -742,7 +754,6 @@ class StripeTerminalPOS
             wp_send_json_error($result->get_error_message());
         } else {
             if ($result['status'] === 'succeeded') {
-                // Create WooCommerce order
                 $order_data = [
                     'amount' => $result['amount'],
                     'tax' => isset($_POST['tax']) ? floatval($_POST['tax']) : 0,
@@ -772,7 +783,7 @@ class StripeTerminalPOS
             wp_die();
         }
 
-        $payment_intent_id = sanitize_text_field($_POST['payment_intent_id']);
+        $payment_intent_id = sanitize_text_field(wp_unslash($_POST['payment_intent_id']));
 
         $result = $this->cancel_payment_intent($payment_intent_id);
 
@@ -797,7 +808,7 @@ class StripeTerminalPOS
             wp_die();
         }
 
-        $reader_id = sanitize_text_field($_POST['reader_id']);
+        $reader_id = sanitize_text_field(wp_unslash($_POST['reader_id']));
         $result = $this->clear_terminal_display($reader_id);
 
         if (is_wp_error($result)) {
@@ -827,7 +838,6 @@ class StripeTerminalPOS
             );
         }
 
-        // Main POS script enqueue
         wp_register_script(
             'stripe-terminal-pos',
             plugins_url('/assets/js/main.js', __FILE__),
@@ -836,7 +846,6 @@ class StripeTerminalPOS
             true
         );
 
-        // Enqueue main CSS
         wp_enqueue_style(
             'stripe-terminal-pos',
             plugins_url('/assets/css/main.css', __FILE__),
@@ -863,28 +872,7 @@ class StripeTerminalPOS
      */
     function stripe_terminal_pos_shortcode()
     {
-        // Enqueue the script specifically for this shortcode
         wp_enqueue_script('stripe-terminal-pos');
-
-        // Get plugin file path for version control
-        $select2_css_ver = filemtime(plugin_dir_path(__FILE__) . 'assets/css/select2.min.css');
-        $select2_js_ver = filemtime(plugin_dir_path(__FILE__) . 'assets/js/select2.min.js');
-
-        // Enqueue Select2 with proper version numbers
-        wp_enqueue_style(
-            'select2', 
-            WP_PLUGIN_URL . '/stripe-pos-wp/assets/css/select2.min.css',
-            array(),
-            $select2_css_ver
-        );
-        
-        wp_enqueue_script(
-            'select2', 
-            WP_PLUGIN_URL . '/stripe-pos-wp/assets/js/select2.min.js', 
-            array('jquery'),
-            $select2_js_ver,
-            true
-        );
     }
 
     private function create_woocommerce_order($payment_data, $cart_items)
@@ -894,10 +882,10 @@ class StripeTerminalPOS
         }
 
         try {
-            // Create a new order
+
             $order = wc_create_order();
 
-            // Add products to the order
+
             foreach ($cart_items as $item) {
                 $product_id = absint($item['product_id']);
                 $product = wc_get_product($product_id);
@@ -913,48 +901,47 @@ class StripeTerminalPOS
                 }
             }
 
-            // Add tax
+
             if (isset($payment_data['tax']) && $payment_data['tax'] > 0) {
                 $order->set_cart_tax($payment_data['tax']);
             }
 
-            // Set payment method
+
             $order->set_payment_method('stripe_terminal');
             $order->set_payment_method_title('Stripe Terminal');
 
-            // Set order totals
+
             $order->set_total($payment_data['amount']);
 
-            // Add note
+
             if (!empty($payment_data['notes'])) {
                 $order->add_order_note($payment_data['notes'], false, false);
             }
 
-            // Add Stripe payment metadata
+
             $order->update_meta_data('_stripe_payment_intent_id', $payment_data['payment_intent_id']);
             $order->update_meta_data('_stripe_terminal_reader_id', $payment_data['reader_id']);
 
-            // Set order as completed since payment is already processed
+
             $order->payment_complete($payment_data['payment_intent_id']);
             $order->add_order_note('Payment completed via Stripe Terminal POS');
 
-            // Save the order
+
             $order->save();
 
             return $order->get_id();
         } catch (Exception $e) {
-            error_log('Stripe Terminal: Error creating WooCommerce order - ' . $e->getMessage());
+            // error_log('Stripe Terminal: Error creating WooCommerce order - ' . $e->getMessage());
             return false;
         }
     }
 
-    // Add this method to check currency support
     private function is_currency_supported($currency)
     {
         return isset($this->supported_currencies[strtolower($currency)]);
     }
 
-    // Sanitization methods
+
     private function sanitize_checkbox($input)
     {
         return (isset($input) && true === (bool) $input) ? '1' : '0';
@@ -967,11 +954,11 @@ class StripeTerminalPOS
     }
 }
 
-// Initialize the plugin
+
 function stripe_terminal_pos_init()
 {
     return StripeTerminalPOS::get_instance();
 }
 
-// Start the plugin
+
 stripe_terminal_pos_init();

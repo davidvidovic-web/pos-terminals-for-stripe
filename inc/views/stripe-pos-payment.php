@@ -2,17 +2,17 @@
 <div class="wrap">
     <div class="stripe-terminal-admin-container">
         <div class="stripe-terminal-pos">
-            <?php 
+            <?php
             $wc_currency = get_woocommerce_currency();
-            if (!$this->is_currency_supported($wc_currency)): 
+            if (!$this->is_currency_supported($wc_currency)):
             ?>
-            <div class="notice notice-error">
-                <p>
-                    <strong>Warning:</strong> Your current WooCommerce currency (<?php echo esc_html($wc_currency); ?>) 
-                    is not supported by Stripe Terminal. Please change your WooCommerce currency to one of the following:
-                    <?php echo esc_html(implode(', ', array_keys($this->supported_currencies))); ?>
-                </p>
-            </div>
+                <div class="notice notice-error">
+                    <p>
+                        <strong>Warning:</strong> Your current WooCommerce currency (<?php echo esc_html($wc_currency); ?>)
+                        is not supported by Stripe Terminal. Please change your WooCommerce currency to one of the following:
+                        <?php echo esc_html(implode(', ', array_keys($this->supported_currencies))); ?>
+                    </p>
+                </div>
             <?php endif; ?>
 
             <div class="pos-section">
@@ -50,13 +50,13 @@
                                         )
                                     )
                                 );
-                                
+
                                 printf(
                                     '<option value="%1$d" data-price="%2$s">%3$s (%4$s)</option>',
-                                    $id,
+                                    esc_attr($id),
                                     esc_attr($price),
-                                    $name,
-                                    $formatted_price
+                                    esc_attr($name),
+                                    esc_attr($formatted_price)
                                 );
                             }
                         }

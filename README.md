@@ -1,5 +1,8 @@
-# POS Terminals for Stripe
+# POS Terminals integration for Stripe
 
+Tested up to: 6.8
+License: GPL v2 or later
+Stable tag: 1.0.0
 A WordPress plugin that integrates Stripe Terminal for Point of Sale (POS) payments using server-driven integration.
 
 ## Features
